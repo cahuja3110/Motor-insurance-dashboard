@@ -259,36 +259,38 @@ with tab_compare:
 # TAB 4 — Underwriting Calculator (Sleek Fragment Processing)
 # ════════════════════════════════════════════════════════════════════════════
 with tab_predict:
-    st.caption("Fill out the driver profile parameters below. The validation logic compiles instantly.")
+    st.caption("Adjust the driver profile parameters below. The risk engine will recalculate the verdict instantly.")
 
     @st.fragment
     def prediction_fragment():
-        """Runs in isolation to keep the calculator incredibly snappy."""
+        """Runs in isolation to keep the calculator incredibly snappy and reactive."""
+        
+        # We use a standard container instead of a form so variables update immediately on change
         with st.container(border=True):
             st.markdown("#### **Policyholder Parameter Matrix**")
             col_u1, col_u2, col_u3 = st.columns(3)
             
             with col_u1:
                 st.markdown("**👤 Demographics**")
-                driver_age = st.slider("Driver Age", 17, 95, 35)
-                licence_years = st.slider("Years Licensed", 0, 75, 15)
-                customer_years = st.slider("Insurer Tenure (Years)", 0.0, 25.0, 4.0, step=0.5)
+                driver_age = st.slider("Driver Age", 17, 95, 35, key="calc_driver_age")
+                licence_years = st.slider("Years Licensed", 0, 75, 15, key="calc_licence")
+                customer_years = st.slider("Insurer Tenure (Years)", 0.0, 25.0, 4.0, step=0.5, key="calc_tenure")
                 
             with col_u2:
                 st.markdown("**🚗 Vehicle Characteristics**")
-                vehicle_age = st.slider("Vehicle Age", 0, 30, 6)
-                power = st.number_input("Engine Power (HP)", min_value=10, max_value=800, value=110)
-                doors = st.selectbox("Door Count", ["4", "2", "3", "5", "0 (Bike)"])
+                vehicle_age = st.slider("Vehicle Age", 0, 30, 6, key="calc_veh_age")
+                power = st.number_input("Engine Power (HP)", min_value=10, max_value=800, value=110, key="calc_power")
+                doors = st.selectbox("Door Count", ["4", "2", "3", "5", "0 (Bike)"], key="calc_doors")
                 
             with col_u3:
                 st.markdown("**📄 Policy Parameters**")
-                risk_type = st.selectbox("Underwriting Classification", ["Type 2 (Private)", "Type 1 (Motorcycle)", "Type 3 (Commercial)", "Type 4 (Fleet)"])
-                policies_in_force = st.number_input("Existing Policies with Insurer", 1, 10, 1)
+                risk_type = st.selectbox("Underwriting Classification", ["Type 2 (Private)", "Type 1 (Motorcycle)", "Type 3 (Commercial)", "Type 4 (Fleet)"], key="calc_risk")
+                policies_in_force = st.number_input("Existing Policies with Insurer", 1, 10, 1, key="calc_pif")
 
-        # Simplified transparent evaluation engine modeling the real behavior
+        # Transparent evaluation engine modeling the real behavior
         score = 100.0
         
-        # Age Adjustments
+        # 1. Age curve adjustments
         if driver_age < 25:
             score *= 2.1
         elif driver_age > 75:
@@ -296,10 +298,10 @@ with tab_predict:
         else:
             score *= 0.8
             
-        # Loyalty Tenure Adjustments
+        # 2. Loyalty Tenure Adjustments
         score *= max(0.55, 1.0 - (customer_years * 0.045))
         
-        # Vehicle characteristics
+        # 3. Vehicle characteristics
         if power > 180:
             score *= 1.45
         if doors == "2":
@@ -307,13 +309,13 @@ with tab_predict:
         elif doors == "0 (Bike)":
             score *= 0.42
             
-        # Risk classification profile adjustment
+        # 4. Risk classification profile adjustment
         if risk_type == "Type 4 (Fleet)":
             score *= 1.75
         elif risk_type == "Type 3 (Commercial)":
             score *= 1.25
 
-        # Decode decile bands
+        # Decode score value into distinct decile bands
         score_val = float(score)
         if score_val < 45:
             decile = 1
