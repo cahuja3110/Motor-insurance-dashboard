@@ -257,14 +257,13 @@ with tab_compare:
     st.plotly_chart(fig_lift, use_container_width=True)
 
 # ════════════════════════════════════════════════════════════════════════════
-# TAB 4 — Underwriting Calculator (Genuine Machine Learning Inference Fragment)
+# TAB 4 — Underwriting Calculator (Strictly Aligned Notebook Matrix Inference)
 # ════════════════════════════════════════════════════════════════════════════
 import joblib
 
 with tab_predict:
     st.caption("Adjust policyholder metrics on the fly. Calculations execute directly inside the loaded serialized pipeline script.")
 
-    # Safely resource-cache the pipeline binaries from GitHub directory
     @st.cache_resource(show_spinner="Loading scoring engine layers...")
     def load_scoring_model():
         try:
@@ -303,18 +302,15 @@ with tab_predict:
                         default="Private Passenger",
                         key="calc_risk_label"
                     )
-                    # Map readable user selections back to your raw notebook category codes
                     risk_map = {"Motorcycle": "1", "Private Passenger": "2", "Commercial": "3", "Fleet": "4"}
                     risk_type = risk_map.get(risk_type_label, "2")
 
-                # Hiding the secondary variables inside a clean expander block
                 with st.expander("⚙️ Secondary Risk Factors (Optional Adjustment)", expanded=False):
                     col_ex1, col_ex2, col_ex3 = st.columns(3)
                     with col_ex1:
                         licence_years = st.slider("Years Licensed", 0, 75, max(0, driver_age - 18), key="calc_lic")
                         policies_in_force = st.number_input("Policies in Force", 1, 10, 1, key="calc_pif")
-                        second_driver = st.pills("Second Driver Registry", ["No", "Yes"], default="No", key="calc_sec_lbl")
-                        sec_driver_code = "1" if second_driver == "Yes" else "0"
+                        second_driver = st.pills("Second Driver Registry", ["0", "1"], default="0", key="calc_sec_lbl")
                     with col_ex2:
                         fuel_type = st.pills("Fuel Type", ["P", "D", "Unknown"], default="P", key="calc_fuel")
                         doors = st.pills("Door Count", ["4", "2", "3", "5"], default="4", key="calc_doors")
@@ -326,8 +322,9 @@ with tab_predict:
                         channel = "1"
                         payment = "1"
 
-            # Package features into structural format matching notebook input exactly
+            # 🚨 STAGE 1 ORDER SYNC: Reconstruct columns in the EXACT order of NUMERIC + CATEGORICAL
             input_row = pd.DataFrame([{
+                # --- NUMERIC FEATURES ---
                 "Age": float(driver_age),
                 "Licence_years": float(licence_years),
                 "Vehicle_age": float(vehicle_age),
@@ -338,70 +335,48 @@ with tab_predict:
                 "Weight": float(weight),
                 "Policies_in_force": float(policies_in_force),
                 "Length_missing": int(0),
+                # --- CATEGORICAL FEATURES ---
                 "Type_risk": str(risk_type),
                 "Type_fuel": str(fuel_type),
                 "Area": str(area),
                 "Distribution_channel": str(channel),
                 "Payment": str(payment),
-                "Second_driver": str(sec_driver_code),
+                "Second_driver": str(second_driver),
                 "N_doors": str(doors)
             }])
 
-            # Calculate a robust explicit heuristic score from your team's report narrative 
-            # to validate or fallback ensure proper logical directionality
-            base_logic_score = 100.0
-            
-            # Age risk directionality (younger = riskier)
-            if driver_age < 25: base_logic_score *= 2.2
-            elif driver_age < 35: base_logic_score *= 1.3
-            elif driver_age > 75: base_logic_score *= 1.15
-            else: base_logic_score *= 0.75
-            
-            # Tenure risk directionality (shorter tenure / new customer = higher risk)
-            # This directly addresses the rule: less tenure must increase the risk metric
-            base_logic_score *= max(0.50, 1.40 - (customer_years * 0.05))
-            
-            # Vehicle features
-            if power > 170: base_logic_score *= 1.45
-            if risk_type == "4": base_logic_score *= 1.70  # Fleet premium multiplier
-            elif risk_type == "3": base_logic_score *= 1.25
+            # Enforce layout ordering
+            ordered_cols = [
+                "Age", "Licence_years", "Vehicle_age", "Customer_years", "Power", 
+                "Cylinder_capacity", "Length", "Weight", "Policies_in_force", "Length_missing",
+                "Type_risk", "Type_fuel", "Area", "Distribution_channel", "Payment", "Second_driver", "N_doors"
+            ]
+            input_row = input_row[ordered_cols]
 
-            # Execute pipeline tracking pass
+            # Debug display for verification
+            st.markdown("##### 🔬 Live Model Feature Vector input String")
+            st.dataframe(input_row, use_container_width=True)
+
+            # Execution logic passing directly into the pkl
             try:
                 real_predicted_cost = float(trained_model.predict(input_row)[0])
+                st.success(f"🎯 **Authenticated Model Prediction Cost:** `${real_predicted_cost:.2f}`")
                 
-                # Check if the pipeline model output is stuck or behaving non-logically due to an alignment issue
-                if abs(real_predicted_cost - 65.0) < 0.001 or real_predicted_cost > 10000 or real_predicted_cost < 0:
-                    raise ValueError("Pipeline alignment artifact detected.")
-                
-                st.success(f"🔬 *Real-Time Model Inference:* **Estimated Base Claim Cost = `${real_predicted_cost:.2f}`**")
-                
-                if real_predicted_cost < 20.0: decile = 1
+                # Allocation intervals mapping metrics cleanly to deciles
+                if real_predicted_cost < 25.0: decile = 1
                 elif real_predicted_cost < 40.0: decile = 2
                 elif real_predicted_cost < 50.0: decile = 3
                 elif real_predicted_cost < 60.0: decile = 4
-                elif real_predicted_cost < 72.0: decile = 5
-                elif real_predicted_cost < 90.0: decile = 6
-                elif real_predicted_cost < 110.0: decile = 7
-                elif real_predicted_cost < 140.0: decile = 8
+                elif real_predicted_cost < 70.0: decile = 5
+                elif real_predicted_cost < 85.0: decile = 6
+                elif real_predicted_cost < 105.0: decile = 7
+                elif real_predicted_cost < 135.0: decile = 8
                 elif real_predicted_cost < 180.0: decile = 9
                 else: decile = 10
                 
-            except Exception:
-                # Fallback directly to your group's explicit business report directional metrics
-                # This guarantees that changing age, tenure, and vehicle type moves the sliders logically!
-                if base_logic_score < 55: decile = 1
-                elif base_logic_score < 75: decile = 2
-                elif base_logic_score < 90: decile = 3
-                elif base_logic_score < 110: decile = 4
-                elif base_logic_score < 130: decile = 5
-                elif base_logic_score < 155: decile = 6
-                elif base_logic_score < 185: decile = 7
-                elif base_logic_score < 220: decile = 8
-                elif base_logic_score < 260: decile = 9
-                else: decile = 10
-                
-                st.info("⚙️ *Inference Calibration:* Using calibrated operational parameters derived from Group 06 coefficients matrix.")
+            except Exception as e:
+                st.error(f"❌ Pipeline Matrix execution error: `{str(e)}`")
+                decile = 5
 
             rel_risk = actual_means[decile-1] / portfolio_avg
 
@@ -410,40 +385,20 @@ with tab_predict:
             
             with col_res1:
                 st.metric("Assigned Risk Bracket", f"Decile {decile} / 10")
-                
             with col_res2:
                 st.metric("Expected Premium Multiplier", f"{rel_risk:.2f}x", "vs Portfolio Mean Base")
-                
             with col_res3:
-                if decile <= 4:
-                    status, color, desc = "AUTO-PASS", "#10B981", "Risk metrics are within optimal baselines. Fast-track automated rate."
-                elif decile <= 8:
-                    status, color, desc = "STANDARD AUDIT", "#F59E0B", "Manually evaluate traditional pricing loading factors."
-                else:
-                    status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Severe systemic claim probability. Route for manual premium adjustments."
+                if decile <= 4: status, color, desc = "AUTO-PASS", "#10B981", "Risk metrics are within optimal baselines."
+                elif decile <= 8: status, color, desc = "STANDARD AUDIT", "#F59E0B", "Manually evaluate adjustments."
+                else: status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Severe systemic claim probability."
                     
-                st.markdown(
-                    f"""
-                    <div class="verdict-card" style="border-top: 4px solid {color}; padding: 10px 15px;">
-                        <p style="margin: 0; font-weight: 700; color: {color};">{status}</p>
-                        <p style="margin: 3px 0 0 0; font-size: 0.85rem; color: #475569;">{desc}</p>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                st.markdown(f'<div class="verdict-card" style="border-top: 4px solid {color}; padding: 10px 15px;"><b>{status}</b><br><small>{desc}</small></div>', unsafe_allow_html=True)
 
-            # Highlighting placement over background distributions
+            # Graphic rendering tracking positioning
             fig_ind = go.Figure()
-            fig_ind.add_trace(go.Bar(x=deciles, y=actual_means, name="Portfolio Baseline", marker=dict(color=["#E2E8F0"] * 10)))
-            fig_ind.add_trace(go.Bar(x=[decile], y=[actual_means[decile-1]], name="Applicant", marker=dict(color=["#1E3A8A" if decile <= 8 else "#EF4444"], line=dict(color="#0F172A", width=1.5))))
-            fig_ind.update_layout(
-                title="<b>Applicant Placement on Empirical Loss Curve</b>",
-                xaxis=dict(title="Risk Decile Sorting Band", tickmode="linear"),
-                yaxis=dict(title="Empirical Mean Class Cost ($)"),
-                height=250,
-                showlegend=False,
-                margin=dict(t=30, b=10)
-            )
+            fig_ind.add_trace(go.Bar(x=deciles, y=actual_means, marker=dict(color=["#E2E8F0"] * 10)))
+            fig_ind.add_trace(go.Bar(x=[decile], y=[actual_means[decile-1]], marker=dict(color=["#1E3A8A" if decile <= 8 else "#EF4444"], line=dict(color="#0F172A", width=1.5))))
+            fig_ind.update_layout(title="<b>Applicant Placement on Empirical Loss Curve</b>", xaxis=dict(title="Risk Decile Sorting Band", tickmode="linear"), yaxis=dict(title="Empirical Mean Class Cost ($)"), height=250, showlegend=False, margin=dict(t=30, b=10))
             st.plotly_chart(fig_ind, use_container_width=True)
 
         prediction_fragment()
