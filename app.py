@@ -329,8 +329,9 @@ with tab_predict:
                         channel = "1"
                         payment = "1"
 
-            # 2. Reconstruct DataFrame to match exact ColumnTransformer format
+            # 2. Reconstruct DataFrame matching the EXACT pandas types your pipeline was fitted on
             input_row = pd.DataFrame([{
+                # NUMERIC variables (All cast to float to prevent any StandardScaler variance)
                 "Age": float(driver_age),
                 "Licence_years": float(licence_years),
                 "Vehicle_age": float(vehicle_age),
@@ -340,16 +341,19 @@ with tab_predict:
                 "Length": float(length),
                 "Weight": float(weight),
                 "Policies_in_force": float(policies_in_force),
-                "Length_missing": int(0),
-                "Type_risk": str(risk_type),
-                "Type_fuel": str(fuel_type),
-                "Area": str(area),
-                "Distribution_channel": str(channel),
-                "Payment": str(payment),
-                "Second_driver": str(second_driver),
-                "N_doors": str(doors)
+                "Length_missing": float(0.0), # Must match NUMERIC type
+                
+                # CATEGORICAL variables (Cast back to integers or the correct type)
+                "Type_risk": int(risk_type),                # Must be int (e.g., 2)
+                "Type_fuel": str(fuel_type),                # Str (e.g., "P")
+                "Area": int(area),                          # Must be int (e.g., 1)
+                "Distribution_channel": int(channel),       # Must be int (e.g., 1)
+                "Payment": int(payment),                    # Must be int (e.g., 1)
+                "Second_driver": int(second_driver),        # Must be int (e.g., 0)
+                "N_doors": int(doors)                       # Must be int (e.g., 4)
             }])
 
+            # Strict feature matrix arrangement
             ordered_cols = [
                 "Age", "Licence_years", "Vehicle_age", "Customer_years", "Power", 
                 "Cylinder_capacity", "Length", "Weight", "Policies_in_force", "Length_missing",
