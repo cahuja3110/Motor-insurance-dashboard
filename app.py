@@ -393,6 +393,23 @@ with tab_predict:
                     else:
                         status, color, desc = "STANDARD AUDIT", "#F59E0B", "Standard processing. Review claims history before final sign-off."
                         
+                    st.markdown("### **Commercial Underwriting & Referral Verdict**")
+                col_res1, col_res2, col_res3 = st.columns(3)
+                
+                with col_res1:
+                    st.metric("Risk Placement Band", f"Decile {decile} / 10", f"{rel_risk:.2f}x average risk")
+                with col_res2:
+                    st.metric("Recommended Premium", f"${recommended_premium:.2f}", f"Includes {int((safety_loading-1)*100)}% Loading Factor")
+                with col_res3:
+                    if driver_age < 21:
+                        status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
+                    elif risk_type == "4":
+                        status, color, desc = "FLEET REVIEW REQUIRED", "#F59E0B", "Commercial fleet classifications require commercial vehicle safety audits."
+                    elif decile <= 4:
+                        status, color, desc = "AUTO-PASS", "#10B981", "Optimal risk metrics. Fast-track automated rate with no manual intervention."
+                    else:
+                        status, color, desc = "STANDARD AUDIT", "#F59E0B", "Standard processing. Review claims history before final sign-off."
+                        
                     st.markdown(
                         f"""
                         <div class="verdict-card" style="border-top: 4px solid {color}; padding: 12px 15px;">
@@ -402,6 +419,35 @@ with tab_predict:
                         """,
                         unsafe_allow_html=True,
                     )
+                
+                # 📝 ADDED HERE: Full-width governance audit card right underneath the columns block
+                with st.container(border=True):
+                    st.markdown("##### 📝 **Applied Underwriting Rules & Governance Audit**")
+                    col_aud1, col_aud2 = st.columns(2)
+                    with col_aud1:
+                        st.markdown("**Executed Pricing Rules:**")
+                        if driver_age < 25:
+                            st.caption("⚠️ **High-Risk Demographics:** +30% Risk Loading Applied (Age < 25)")
+                        else:
+                            st.caption("✅ **Standard Demographics:** +15% Baseline Risk Loading Applied")
+                        
+                        if power > 150:
+                            st.caption("⚠️ **High-Performance Vehicle:** Manual underwriting review recommended (Power > 150 HP)")
+                        else:
+                            st.caption("✅ **Standard Performance Baseline:** Engine parameters clear automated limits")
+                    
+                    with col_aud2:
+                        st.markdown("**Executed Portfolio Rules:**")
+                        if driver_age < 21:
+                            st.caption("❌ **Age Restriction Block:** Referral triggered (Driver is under 21)")
+                        elif risk_type == "4":
+                            st.caption("📋 **Commercial Protocol:** Fleet risk assessment standards enforced")
+                        else:
+                            st.caption("✅ **Standard Protocol:** Auto-routing criteria met")
+
+                # 📊 Live Premium Deviance Analysis vs Portfolio Baselines follows right below...
+                st.markdown("#### **📊 Live Premium Deviance Analysis vs Portfolio Baselines**")
+                model_base_target = 58.4110
                 
                 # UPDATED CHART: Replaced pointless bar with a comprehensive model vs portfolio margin gap evaluation
                 st.markdown("#### **📊 Live Premium Deviance Analysis vs Portfolio Baselines**")
