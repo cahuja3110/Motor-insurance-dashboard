@@ -316,12 +316,14 @@ with tab_predict:
                         second_driver = st.pills("Second Driver Registry", ["No", "Yes"], default="No", key="calc_sec_lbl")
                         sec_driver_code = "1" if second_driver == "Yes" else "0"
                     with col_ex2:
-                        fuel_type = st.pills("Fuel Type", ["Gasoline", "Diesel", "LPG", "Unknown"], default="Gasoline", key="calc_fuel")
+                        # P and D align with Petrol/Diesel category keys in the raw CSV
+                        fuel_type = st.pills("Fuel Type", ["P", "D", "Unknown"], default="P", key="calc_fuel")
                         doors = st.pills("Door Count", ["4", "2", "3", "5"], default="4", key="calc_doors")
                         area = st.selectbox("Area Code", ["1", "2", "3", "4", "5"], index=0, key="calc_area")
                     with col_ex3:
                         cylinder = st.number_input("Cylinder Capacity (cc)", min_value=100, max_value=8000, value=1600, key="calc_cyl")
-                        length = st.number_input("Vehicle Length (mm)", min_value=1000, max_value=6000, value=4200, key="calc_len")
+                        # FIX: Scale length to meters to prevent extreme outlier GLM predictions
+                        length = st.number_input("Vehicle Length (meters)", min_value=1.0, max_value=8.0, value=4.20, step=0.10, key="calc_len")
                         weight = st.number_input("Vehicle Weight (kg)", min_value=300, max_value=4000, value=1300, key="calc_weight")
                         channel = "1"
                         payment = "1"
