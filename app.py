@@ -357,27 +357,27 @@ with tab_predict:
             st.markdown("##### 🔬 Live Model Feature Vector input String")
             st.dataframe(input_row, use_container_width=True)
 
-            # Execution logic passing directly into the pkl
+            # Execute model pass
             try:
                 real_predicted_cost = float(trained_model.predict(input_row)[0])
                 st.success(f"🎯 **Authenticated Model Prediction Cost:** `${real_predicted_cost:.2f}`")
                 
-                # Allocation intervals mapping metrics cleanly to deciles
-                if real_predicted_cost < 25.0: decile = 1
-                elif real_predicted_cost < 40.0: decile = 2
-                elif real_predicted_cost < 50.0: decile = 3
-                elif real_predicted_cost < 60.0: decile = 4
-                elif real_predicted_cost < 70.0: decile = 5
-                elif real_predicted_cost < 85.0: decile = 6
-                elif real_predicted_cost < 105.0: decile = 7
-                elif real_predicted_cost < 135.0: decile = 8
-                elif real_predicted_cost < 180.0: decile = 9
+                # Dynamic mapping custom-tailored to your model's true output window ($220 to $390+)
+                if real_predicted_cost <= 222.0: decile = 1
+                elif real_predicted_cost <= 230.0: decile = 2
+                elif real_predicted_cost <= 242.0: decile = 3
+                elif real_predicted_cost <= 255.0: decile = 4
+                elif real_predicted_cost <= 270.0: decile = 5
+                elif real_predicted_cost <= 290.0: decile = 6
+                elif real_predicted_cost <= 315.0: decile = 7
+                elif real_predicted_cost <= 340.0: decile = 8
+                elif real_predicted_cost <= 375.0: decile = 9
                 else: decile = 10
                 
             except Exception as e:
                 st.error(f"❌ Pipeline Matrix execution error: `{str(e)}`")
                 decile = 5
-
+                
             rel_risk = actual_means[decile-1] / portfolio_avg
 
             st.markdown("### **Calculated System Verdict**")
