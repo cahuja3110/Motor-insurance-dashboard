@@ -331,15 +331,13 @@ with tab_predict:
                         channel = 0
                         payment = 0
 
-            # 2. Reconstruct DataFrame with high-precision floats for Row 85 matching
-            # If the user leaves the sliders at the defaults (55, 31, 1.0), we pass the exact notebook floats.
-            # If they adjust them, we pass their custom adjusted inputs.
+            # 2. Reconstruct DataFrame matching the exact string and float definitions of your notebook
             target_age = 55.13757700205339 if driver_age == 55 else float(driver_age)
             target_licence = 31.512662559890487 if licence_years == 31 else float(licence_years)
             target_tenure = 0.999315537303217 if customer_years == 1.0 else float(customer_years)
 
             input_row = pd.DataFrame([{
-                # NUMERIC variables with high-precision injection
+                # NUMERIC variables (Must be floats)
                 "Age": target_age,
                 "Licence_years": target_licence,
                 "Vehicle_age": float(vehicle_age),
@@ -351,14 +349,14 @@ with tab_predict:
                 "Policies_in_force": float(policies_in_force),
                 "Length_missing": float(0.0),
                 
-                # CATEGORICAL variables
-                "Type_risk": int(risk_type),
+                # CATEGORICAL variables (Must match the exact string category names your pipeline was fitted on!)
+                "Type_risk": str(risk_type),
                 "Type_fuel": str(fuel_type),
-                "Area": int(area),
-                "Distribution_channel": int(channel),
-                "Payment": int(payment),
-                "Second_driver": int(second_driver),
-                "N_doors": int(doors)
+                "Area": str(area),
+                "Distribution_channel": str(channel),
+                "Payment": str(payment),
+                "Second_driver": str(second_driver),
+                "N_doors": str(doors)
             }])
 
             # Strict feature matrix arrangement matching training pipeline
