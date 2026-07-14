@@ -264,9 +264,9 @@ with tab_compare:
             fig_gini_line.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=230)
             st.plotly_chart(fig_gini_line, use_container_width=True)
 
-# ────────────────────────────────────────────────────────────────────────────
-# TAB 4: UNDERWRITING CALCULATOR (UPDATED CHART TO PRICING GAP COMPARISON)
-# ────────────────────────────────────────────────────────────────────────────
+# ════════════════════════════════════════════════════════════════════════════
+# TAB 4 — Underwriting Calculator (Streamlined & De-duplicated)
+# ════════════════════════════════════════════════════════════════════════════
 with tab_predict:
     st.caption("Adjust policyholder metrics on the fly. Calculations execute directly inside the loaded serialized pipeline script.")
 
@@ -284,6 +284,9 @@ with tab_predict:
     else:
         @st.fragment
         def prediction_fragment():
+            """Encapsulated UI segment ensuring responsive real-time data input processing."""
+            
+            # 1. Inputs Section
             with st.container(border=True):
                 st.markdown("#### **Core Underwriting Metrics**")
                 col_u1, col_u2, col_u3 = st.columns(3)
@@ -326,6 +329,7 @@ with tab_predict:
                         channel = "1"
                         payment = "1"
 
+            # 2. Reconstruct DataFrame to match exact ColumnTransformer format
             input_row = pd.DataFrame([{
                 "Age": float(driver_age),
                 "Licence_years": float(licence_years),
@@ -353,14 +357,17 @@ with tab_predict:
             ]
             input_row = input_row[ordered_cols]
 
+            # 3. Developer Lineage Expander (Collapsible)
             with st.expander("🔍 Developer Lineage Audit (Feature Vector)", expanded=False):
                 st.write("This table displays the precise column sequence being fed directly into the model:")
                 st.dataframe(input_row, use_container_width=True)
 
+            # 4. Process Machine Learning Prediction
             try:
                 real_predicted_cost = float(trained_model.predict(input_row)[0])
                 st.success(f"🎯 **Authenticated Model Prediction Cost:** `${real_predicted_cost:.2f}`")
                 
+                # Dynamic mapping custom-tailored to your model's true output window ($220 to $390+)
                 if real_predicted_cost <= 222.0: decile = 1
                 elif real_predicted_cost <= 230.0: decile = 2
                 elif real_predicted_cost <= 242.0: decile = 3
@@ -372,28 +379,13 @@ with tab_predict:
                 elif real_predicted_cost <= 375.0: decile = 9
                 else: decile = 10
 
+                # 5. Core Mathematical Calculations
                 rel_risk = actual_means[decile-1] / portfolio_avg
                 safety_loading = 1.30 if driver_age < 25 else 1.15
                 recommended_premium = (real_predicted_cost * safety_loading)
 
+                # 6. Commercial Verdict Card Layout
                 st.markdown("### **Commercial Underwriting & Referral Verdict**")
-                col_res1, col_res2, col_res3 = st.columns(3)
-                
-                with col_res1:
-                    st.metric("Risk Placement Band", f"Decile {decile} / 10", f"{rel_risk:.2f}x average risk")
-                with col_res2:
-                    st.metric("Recommended Premium", f"${recommended_premium:.2f}", f"Includes {int((safety_loading-1)*100)}% Loading Factor")
-                with col_res3:
-                    if driver_age < 21:
-                        status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
-                    elif risk_type == "4":
-                        status, color, desc = "FLEET REVIEW REQUIRED", "#F59E0B", "Commercial fleet classifications require commercial vehicle safety audits."
-                    elif decile <= 4:
-                        status, color, desc = "AUTO-PASS", "#10B981", "Optimal risk metrics. Fast-track automated rate with no manual intervention."
-                    else:
-                        status, color, desc = "STANDARD AUDIT", "#F59E0B", "Standard processing. Review claims history before final sign-off."
-                        
-                    st.markdown("### **Commercial Underwriting & Referral Verdict**")
                 col_res1, col_res2, col_res3 = st.columns(3)
                 
                 with col_res1:
@@ -420,7 +412,7 @@ with tab_predict:
                         unsafe_allow_html=True,
                     )
                 
-                # 📝 ADDED HERE: Full-width governance audit card right underneath the columns block
+                # 7. Applied Underwriting Rules & Governance Audit
                 with st.container(border=True):
                     st.markdown("##### 📝 **Applied Underwriting Rules & Governance Audit**")
                     col_aud1, col_aud2 = st.columns(2)
@@ -445,14 +437,8 @@ with tab_predict:
                         else:
                             st.caption("✅ **Standard Protocol:** Auto-routing criteria met")
 
-                # 📊 Live Premium Deviance Analysis vs Portfolio Baselines follows right below...
+                # 8. Dynamic Premium Deviance Analysis vs Portfolio Baselines
                 st.markdown("#### **📊 Live Premium Deviance Analysis vs Portfolio Baselines**")
-                model_base_target = 58.4110
-                
-                # UPDATED CHART: Replaced pointless bar with a comprehensive model vs portfolio margin gap evaluation
-                st.markdown("#### **📊 Live Premium Deviance Analysis vs Portfolio Baselines**")
-                
-                # Model Champion benchmark baseline
                 model_base_target = 58.4110
                 
                 fig_comp = go.Figure()
