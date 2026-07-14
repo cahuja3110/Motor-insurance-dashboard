@@ -405,7 +405,7 @@ with tab_predict:
                 with col_res3:
                     if driver_age < 21:
                         status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
-                    elif risk_type == 4: # Int check
+                    elif risk_type == "4": # Int check
                         status, color, desc = "FLEET REVIEW REQUIRED", "#F59E0B", "Commercial fleet classifications require commercial vehicle safety audits."
                     elif decile <= 4:
                         status, color, desc = "AUTO-PASS", "#10B981", "Optimal risk metrics. Fast-track automated rate with no manual intervention."
@@ -442,7 +442,7 @@ with tab_predict:
                         st.markdown("**Executed Portfolio Rules:**")
                         if driver_age < 21:
                             st.caption("❌ **Age Restriction Block:** Referral triggered (Driver is under 21)")
-                        elif risk_type == 4: # Int check
+                        elif risk_type == "4": # Int check
                             st.caption("📋 **Commercial Protocol:** Fleet risk assessment standards enforced")
                         else:
                             st.caption("✅ **Standard Protocol:** Auto-routing criteria met")
