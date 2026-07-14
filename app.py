@@ -378,7 +378,7 @@ with tab_predict:
                 st.error(f"❌ Pipeline Matrix execution error: `{str(e)}`")
                 decile = 5
                 
-       rel_risk = actual_means[decile-1] / portfolio_avg
+rel_risk = actual_means[decile-1] / portfolio_avg
 
             # Calculate a Recommended Commercial Premium base
             # $65 average portfolio cost * risk multiplier * safety loading factor
@@ -410,8 +410,7 @@ with tab_predict:
                         <span style="font-size: 0.85rem; color: #475569; line-height: 1.4; display: inline-block; margin-top: 4px;">{desc}</span>
                     </div>
                     """,
-                    unsafe_allow_html=True,
-                )
+                    unsafe_allow_html=True,)
                 
             # Graphic rendering tracking positioning
             fig_ind = go.Figure()
