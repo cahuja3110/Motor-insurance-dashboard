@@ -378,22 +378,41 @@ with tab_predict:
                 st.error(f"❌ Pipeline Matrix execution error: `{str(e)}`")
                 decile = 5
                 
-            rel_risk = actual_means[decile-1] / portfolio_avg
+       rel_risk = actual_means[decile-1] / portfolio_avg
 
-            st.markdown("### **Calculated System Verdict**")
+            # Calculate a Recommended Commercial Premium base
+            # $65 average portfolio cost * risk multiplier * safety loading factor
+            safety_loading = 1.30 if driver_age < 25 else 1.15
+            recommended_premium = (real_predicted_cost * safety_loading)
+
+            st.markdown("### **Commercial Underwriting & Referral Verdict**")
             col_res1, col_res2, col_res3 = st.columns(3)
             
             with col_res1:
-                st.metric("Assigned Risk Bracket", f"Decile {decile} / 10")
+                st.metric("Risk Placement Band", f"Decile {decile} / 10", f"{rel_risk:.2f}x average risk")
             with col_res2:
-                st.metric("Expected Premium Multiplier", f"{rel_risk:.2f}x", "vs Portfolio Mean Base")
+                st.metric("Recommended Premium", f"${recommended_premium:.2f}", f"Includes {int((safety_loading-1)*100)}% Loading Factor")
             with col_res3:
-                if decile <= 4: status, color, desc = "AUTO-PASS", "#10B981", "Risk metrics are within optimal baselines."
-                elif decile <= 8: status, color, desc = "STANDARD AUDIT", "#F59E0B", "Manually evaluate adjustments."
-                else: status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Severe systemic claim probability."
+                # Enforce business rules independent of model predictions
+                if driver_age < 21:
+                    status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
+                elif risk_type == "4":
+                    status, color, desc = "FLEET REVIEW REQUIRED", "#F59E0B", "Commercial fleet classifications require commercial vehicle safety audits."
+                elif decile <= 4:
+                    status, color, desc = "AUTO-PASS", "#10B981", "Optimal risk metrics. Fast-track automated rate with no manual intervention."
+                else:
+                    status, color, desc = "STANDARD AUDIT", "#F59E0B", "Standard processing. Review claims history before final sign-off."
                     
-                st.markdown(f'<div class="verdict-card" style="border-top: 4px solid {color}; padding: 10px 15px;"><b>{status}</b><br><small>{desc}</small></div>', unsafe_allow_html=True)
-
+                st.markdown(
+                    f"""
+                    <div class="verdict-card" style="border-top: 4px solid {color}; padding: 12px 15px;">
+                        <span style="font-weight: 700; color: {color}; font-size: 0.95rem;">{status}</span><br>
+                        <span style="font-size: 0.85rem; color: #475569; line-height: 1.4; display: inline-block; margin-top: 4px;">{desc}</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                
             # Graphic rendering tracking positioning
             fig_ind = go.Figure()
             fig_ind.add_trace(go.Bar(x=deciles, y=actual_means, marker=dict(color=["#E2E8F0"] * 10)))
