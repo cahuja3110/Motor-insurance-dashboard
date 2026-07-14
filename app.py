@@ -265,7 +265,7 @@ with tab_compare:
             st.plotly_chart(fig_gini_line, use_container_width=True)
 
 # ════════════════════════════════════════════════════════════════════════════
-# TAB 4 — Underwriting Calculator (Streamlined & De-duplicated)
+# TAB 4 — Underwriting Calculator (Aligned to Notebook Row 85 Pipeline)
 # ════════════════════════════════════════════════════════════════════════════
 with tab_predict:
     st.caption("Adjust policyholder metrics on the fly. Calculations execute directly inside the loaded serialized pipeline script.")
@@ -286,20 +286,20 @@ with tab_predict:
         def prediction_fragment():
             """Encapsulated UI segment ensuring responsive real-time data input processing."""
             
-            # 1. Inputs Section
+            # 1. Inputs Section (Aligned to Row 85 Defaults)
             with st.container(border=True):
                 st.markdown("#### **Core Underwriting Metrics**")
                 col_u1, col_u2, col_u3 = st.columns(3)
                 
                 with col_u1:
                     st.markdown("**👤 Demographics**")
-                    driver_age = st.slider("Driver Age (Age)", 17, 95, 35, key="calc_age")
-                    customer_years = st.slider("Insurer Tenure (Customer_years)", 0.0, 25.0, 4.0, step=0.5, key="calc_ten")
+                    driver_age = st.slider("Driver Age (Age)", 17, 95, 55, key="calc_age")
+                    customer_years = st.slider("Insurer Tenure (Customer_years)", 0.0, 25.0, 1.0, step=0.5, key="calc_ten")
                     
                 with col_u2:
                     st.markdown("**🚗 Vehicle Parameters**")
-                    power = st.number_input("Engine Power (Power)", min_value=10, max_value=800, value=110, key="calc_pow")
-                    vehicle_age = st.slider("Vehicle Age (Vehicle_age)", 0, 30, 6, key="calc_v_age")
+                    power = st.number_input("Engine Power (Power)", min_value=10, max_value=800, value=86, key="calc_pow")
+                    vehicle_age = st.slider("Vehicle Age (Vehicle_age)", 0, 30, 23, key="calc_v_age")
                     
                 with col_u3:
                     st.markdown("**📄 Operational Classification**")
@@ -315,23 +315,25 @@ with tab_predict:
                 with st.expander("⚙️ Secondary Risk Factors (Optional Adjustment)", expanded=False):
                     col_ex1, col_ex2, col_ex3 = st.columns(3)
                     with col_ex1:
-                        licence_years = st.slider("Years Licensed", 0, 75, max(0, driver_age - 18), key="calc_lic")
+                        licence_years = st.slider("Years Licensed", 0, 75, 31, key="calc_lic")
                         policies_in_force = st.number_input("Policies in Force", 1, 10, 1, key="calc_pif")
                         second_driver = st.pills("Second Driver Registry", ["0", "1"], default="0", key="calc_sec_lbl")
                     with col_ex2:
-                        fuel_type = st.pills("Fuel Type", ["P", "D", "Unknown"], default="P", key="calc_fuel")
-                        doors = st.pills("Door Count", ["4", "2", "3", "5"], default="4", key="calc_doors")
-                        area = st.selectbox("Area Code", ["1", "2", "3", "4", "5"], index=0, key="calc_area")
+                        fuel_type = st.pills("Fuel Type", ["P", "D", "Unknown"], default="D", key="calc_fuel")
+                        doors = st.pills("Door Count", ["4", "2", "3", "5"], default="5", key="calc_doors")
+                        area = st.selectbox("Area Code", ["0", "1", "2", "3", "4", "5"], index=0, key="calc_area")
                     with col_ex3:
-                        cylinder = st.number_input("Cylinder Capacity (cc)", min_value=100, max_value=8000, value=1600, key="calc_cyl")
-                        length = st.number_input("Vehicle Length (meters)", min_value=1.0, max_value=8.0, value=4.20, step=0.10, key="calc_len")
-                        weight = st.number_input("Vehicle Weight (kg)", min_value=300, max_value=4000, value=1300, key="calc_weight")
-                        channel = "1"
-                        payment = "1"
+                        cylinder = st.number_input("Cylinder Capacity (cc)", min_value=100, max_value=8000, value=2953, key="calc_cyl")
+                        length = st.number_input("Vehicle Length (meters)", min_value=1.0, max_value=8.0, value=4.61, step=0.01, key="calc_len")
+                        weight = st.number_input("Vehicle Weight (kg)", min_value=300, max_value=4000, value=1820, key="calc_weight")
+                        
+                        # System variables matching Row 85
+                        channel = 0
+                        payment = 0
 
             # 2. Reconstruct DataFrame matching the EXACT pandas types your pipeline was fitted on
             input_row = pd.DataFrame([{
-                # NUMERIC variables (All cast to float to prevent any StandardScaler variance)
+                # NUMERIC variables
                 "Age": float(driver_age),
                 "Licence_years": float(licence_years),
                 "Vehicle_age": float(vehicle_age),
@@ -341,19 +343,19 @@ with tab_predict:
                 "Length": float(length),
                 "Weight": float(weight),
                 "Policies_in_force": float(policies_in_force),
-                "Length_missing": float(0.0), # Must match NUMERIC type
+                "Length_missing": float(0.0),
                 
-                # CATEGORICAL variables (Cast back to integers or the correct type)
-                "Type_risk": int(risk_type),                # Must be int (e.g., 2)
-                "Type_fuel": str(fuel_type),                # Str (e.g., "P")
-                "Area": int(area),                          # Must be int (e.g., 1)
-                "Distribution_channel": int(channel),       # Must be int (e.g., 1)
-                "Payment": int(payment),                    # Must be int (e.g., 1)
-                "Second_driver": int(second_driver),        # Must be int (e.g., 0)
-                "N_doors": int(doors)                       # Must be int (e.g., 4)
+                # CATEGORICAL variables (Casted to integers to prevent OneHotEncoder failures)
+                "Type_risk": int(risk_type),
+                "Type_fuel": str(fuel_type),
+                "Area": int(area),
+                "Distribution_channel": int(channel),
+                "Payment": int(payment),
+                "Second_driver": int(second_driver),
+                "N_doors": int(doors)
             }])
 
-            # Strict feature matrix arrangement
+            # Strict feature matrix arrangement matching training pipeline
             ordered_cols = [
                 "Age", "Licence_years", "Vehicle_age", "Customer_years", "Power", 
                 "Cylinder_capacity", "Length", "Weight", "Policies_in_force", "Length_missing",
@@ -363,7 +365,7 @@ with tab_predict:
 
             # 3. Developer Lineage Expander (Collapsible)
             with st.expander("🔍 Developer Lineage Audit (Feature Vector)", expanded=False):
-                st.write("This table displays the precise column sequence being fed directly into the model:")
+                st.write("This table displays the precise column sequence and data type structures being fed directly into the model:")
                 st.dataframe(input_row, use_container_width=True)
 
             # 4. Process Machine Learning Prediction
@@ -399,7 +401,7 @@ with tab_predict:
                 with col_res3:
                     if driver_age < 21:
                         status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
-                    elif risk_type == "4":
+                    elif risk_type == 4: # Int check
                         status, color, desc = "FLEET REVIEW REQUIRED", "#F59E0B", "Commercial fleet classifications require commercial vehicle safety audits."
                     elif decile <= 4:
                         status, color, desc = "AUTO-PASS", "#10B981", "Optimal risk metrics. Fast-track automated rate with no manual intervention."
@@ -436,7 +438,7 @@ with tab_predict:
                         st.markdown("**Executed Portfolio Rules:**")
                         if driver_age < 21:
                             st.caption("❌ **Age Restriction Block:** Referral triggered (Driver is under 21)")
-                        elif risk_type == "4":
+                        elif risk_type == 4: # Int check
                             st.caption("📋 **Commercial Protocol:** Fleet risk assessment standards enforced")
                         else:
                             st.caption("✅ **Standard Protocol:** Auto-routing criteria met")
