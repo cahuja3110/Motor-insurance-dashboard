@@ -259,8 +259,6 @@ with tab_compare:
 # ════════════════════════════════════════════════════════════════════════════
 # TAB 4 — Underwriting Calculator (Strictly Aligned Notebook Matrix Inference)
 # ════════════════════════════════════════════════════════════════════════════
-import joblib
-
 with tab_predict:
     st.caption("Adjust policyholder metrics on the fly. Calculations execute directly inside the loaded serialized pipeline script.")
 
@@ -322,9 +320,8 @@ with tab_predict:
                         channel = "1"
                         payment = "1"
 
-            # 🚨 STAGE 1 ORDER SYNC: Reconstruct columns in the EXACT order of NUMERIC + CATEGORICAL
+            # Reconstruct columns in the EXACT order of NUMERIC + CATEGORICAL
             input_row = pd.DataFrame([{
-                # --- NUMERIC FEATURES ---
                 "Age": float(driver_age),
                 "Licence_years": float(licence_years),
                 "Vehicle_age": float(vehicle_age),
@@ -335,7 +332,6 @@ with tab_predict:
                 "Weight": float(weight),
                 "Policies_in_force": float(policies_in_force),
                 "Length_missing": int(0),
-                # --- CATEGORICAL FEATURES ---
                 "Type_risk": str(risk_type),
                 "Type_fuel": str(fuel_type),
                 "Area": str(area),
@@ -345,7 +341,6 @@ with tab_predict:
                 "N_doors": str(doors)
             }])
 
-            # Enforce layout ordering
             ordered_cols = [
                 "Age", "Licence_years", "Vehicle_age", "Customer_years", "Power", 
                 "Cylinder_capacity", "Length", "Weight", "Policies_in_force", "Length_missing",
@@ -353,11 +348,10 @@ with tab_predict:
             ]
             input_row = input_row[ordered_cols]
 
-            # Debug display for verification
-            st.markdown("##### 🔬 Live Model Feature Vector input String")
+            st.markdown("##### 🔬 Live Model Feature Vector Input")
             st.dataframe(input_row, use_container_width=True)
 
-# Execute model pass
+            # Execute model pass
             try:
                 real_predicted_cost = float(trained_model.predict(input_row)[0])
                 st.success(f"🎯 **Authenticated Model Prediction Cost:** `${real_predicted_cost:.2f}`")
@@ -376,8 +370,7 @@ with tab_predict:
 
                 rel_risk = actual_means[decile-1] / portfolio_avg
 
-                # Calculate a Recommended Commercial Premium base
-                # $65 average portfolio cost * risk multiplier * safety loading factor
+                # Calculate a Recommended Commercial Premium base with safety loadings
                 safety_loading = 1.30 if driver_age < 25 else 1.15
                 recommended_premium = (real_predicted_cost * safety_loading)
 
@@ -389,7 +382,7 @@ with tab_predict:
                 with col_res2:
                     st.metric("Recommended Premium", f"${recommended_premium:.2f}", f"Includes {int((safety_loading-1)*100)}% Loading Factor")
                 with col_res3:
-                    # Enforce business rules independent of model predictions
+                    # Enforce business rules independent of raw model predictions
                     if driver_age < 21:
                         status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
                     elif risk_type == "4":
@@ -412,46 +405,19 @@ with tab_predict:
             except Exception as e:
                 st.error(f"❌ Pipeline Matrix execution error: `{str(e)}`")
                 decile = 5
-                
-rel_risk = actual_means[decile-1] / portfolio_avg
 
-            # Calculate a Recommended Commercial Premium base
-            # $65 average portfolio cost * risk multiplier * safety loading factor
-            safety_loading = 1.30 if driver_age < 25 else 1.15
-            recommended_premium = (real_predicted_cost * safety_loading)
-
-            st.markdown("### **Commercial Underwriting & Referral Verdict**")
-            col_res1, col_res2, col_res3 = st.columns(3)
-            
-            with col_res1:
-                st.metric("Risk Placement Band", f"Decile {decile} / 10", f"{rel_risk:.2f}x average risk")
-            with col_res2:
-                st.metric("Recommended Premium", f"${recommended_premium:.2f}", f"Includes {int((safety_loading-1)*100)}% Loading Factor")
-            with col_res3:
-                # Enforce business rules independent of model predictions
-                if driver_age < 21:
-                    status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
-                elif risk_type == "4":
-                    status, color, desc = "FLEET REVIEW REQUIRED", "#F59E0B", "Commercial fleet classifications require commercial vehicle safety audits."
-                elif decile <= 4:
-                    status, color, desc = "AUTO-PASS", "#10B981", "Optimal risk metrics. Fast-track automated rate with no manual intervention."
-                else:
-                    status, color, desc = "STANDARD AUDIT", "#F59E0B", "Standard processing. Review claims history before final sign-off."
-                    
-                st.markdown(
-                    f"""
-                    <div class="verdict-card" style="border-top: 4px solid {color}; padding: 12px 15px;">
-                        <span style="font-weight: 700; color: {color}; font-size: 0.95rem;">{status}</span><br>
-                        <span style="font-size: 0.85rem; color: #475569; line-height: 1.4; display: inline-block; margin-top: 4px;">{desc}</span>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,)
-                
-            # Graphic rendering tracking positioning
+            # Highlighting placement over background distributions
             fig_ind = go.Figure()
-            fig_ind.add_trace(go.Bar(x=deciles, y=actual_means, marker=dict(color=["#E2E8F0"] * 10)))
-            fig_ind.add_trace(go.Bar(x=[decile], y=[actual_means[decile-1]], marker=dict(color=["#1E3A8A" if decile <= 8 else "#EF4444"], line=dict(color="#0F172A", width=1.5))))
-            fig_ind.update_layout(title="<b>Applicant Placement on Empirical Loss Curve</b>", xaxis=dict(title="Risk Decile Sorting Band", tickmode="linear"), yaxis=dict(title="Empirical Mean Class Cost ($)"), height=250, showlegend=False, margin=dict(t=30, b=10))
+            fig_ind.add_trace(go.Bar(x=deciles, y=actual_means, name="Portfolio Baseline", marker=dict(color=["#E2E8F0"] * 10)))
+            fig_ind.add_trace(go.Bar(x=[decile], y=[actual_means[decile-1]], name="Applicant", marker=dict(color=["#1E3A8A" if decile <= 8 else "#EF4444"], line=dict(color="#0F172A", width=1.5))))
+            fig_ind.update_layout(
+                title="<b>Applicant Placement on Empirical Loss Curve</b>",
+                xaxis=dict(title="Risk Decile Sorting Band", tickmode="linear"),
+                yaxis=dict(title="Empirical Mean Class Cost ($)"),
+                height=250,
+                showlegend=False,
+                margin=dict(t=30, b=10)
+            )
             st.plotly_chart(fig_ind, use_container_width=True)
 
         prediction_fragment()
