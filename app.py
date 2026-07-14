@@ -357,7 +357,7 @@ with tab_predict:
             st.markdown("##### 🔬 Live Model Feature Vector input String")
             st.dataframe(input_row, use_container_width=True)
 
-            # Execute model pass
+# Execute model pass
             try:
                 real_predicted_cost = float(trained_model.predict(input_row)[0])
                 st.success(f"🎯 **Authenticated Model Prediction Cost:** `${real_predicted_cost:.2f}`")
@@ -373,6 +373,41 @@ with tab_predict:
                 elif real_predicted_cost <= 340.0: decile = 8
                 elif real_predicted_cost <= 375.0: decile = 9
                 else: decile = 10
+
+                rel_risk = actual_means[decile-1] / portfolio_avg
+
+                # Calculate a Recommended Commercial Premium base
+                # $65 average portfolio cost * risk multiplier * safety loading factor
+                safety_loading = 1.30 if driver_age < 25 else 1.15
+                recommended_premium = (real_predicted_cost * safety_loading)
+
+                st.markdown("### **Commercial Underwriting & Referral Verdict**")
+                col_res1, col_res2, col_res3 = st.columns(3)
+                
+                with col_res1:
+                    st.metric("Risk Placement Band", f"Decile {decile} / 10", f"{rel_risk:.2f}x average risk")
+                with col_res2:
+                    st.metric("Recommended Premium", f"${recommended_premium:.2f}", f"Includes {int((safety_loading-1)*100)}% Loading Factor")
+                with col_res3:
+                    # Enforce business rules independent of model predictions
+                    if driver_age < 21:
+                        status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
+                    elif risk_type == "4":
+                        status, color, desc = "FLEET REVIEW REQUIRED", "#F59E0B", "Commercial fleet classifications require commercial vehicle safety audits."
+                    elif decile <= 4:
+                        status, color, desc = "AUTO-PASS", "#10B981", "Optimal risk metrics. Fast-track automated rate with no manual intervention."
+                    else:
+                        status, color, desc = "STANDARD AUDIT", "#F59E0B", "Standard processing. Review claims history before final sign-off."
+                        
+                    st.markdown(
+                        f"""
+                        <div class="verdict-card" style="border-top: 4px solid {color}; padding: 12px 15px;">
+                            <span style="font-weight: 700; color: {color}; font-size: 0.95rem;">{status}</span><br>
+                            <span style="font-size: 0.85rem; color: #475569; line-height: 1.4; display: inline-block; margin-top: 4px;">{desc}</span>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                 
             except Exception as e:
                 st.error(f"❌ Pipeline Matrix execution error: `{str(e)}`")
