@@ -282,35 +282,51 @@ with tab_predict:
             """Encapsulated UI segment ensuring responsive real-time data input processing."""
             
             with st.container(border=True):
-                st.markdown("#### **Policyholder Input Matrix**")
+                st.markdown("#### **Core Underwriting Metrics**")
                 col_u1, col_u2, col_u3 = st.columns(3)
                 
                 with col_u1:
                     st.markdown("**👤 Demographics**")
                     driver_age = st.slider("Driver Age (Age)", 17, 95, 35, key="calc_age")
-                    licence_years = st.slider("Years Licensed (Licence_years)", 0, 75, 15, key="calc_lic")
                     customer_years = st.slider("Insurer Tenure (Customer_years)", 0.0, 25.0, 4.0, step=0.5, key="calc_ten")
                     
                 with col_u2:
                     st.markdown("**🚗 Vehicle Parameters**")
-                    vehicle_age = st.slider("Vehicle Age (Vehicle_age)", 0, 30, 6, key="calc_v_age")
                     power = st.number_input("Engine Power (Power)", min_value=10, max_value=800, value=110, key="calc_pow")
-                    cylinder = st.number_input("Cylinder Capacity (cc)", min_value=100, max_value=8000, value=1600, key="calc_cyl")
-                    length = st.number_input("Vehicle Length (mm)", min_value=1000, max_value=6000, value=4200, key="calc_len")
-                    weight = st.number_input("Vehicle Weight (kg)", min_value=300, max_value=4000, value=1300, key="calc_weight")
-                    doors = st.selectbox("Door Count (N_doors)", ["4", "2", "3", "5"], key="calc_doors")
+                    vehicle_age = st.slider("Vehicle Age (Vehicle_age)", 0, 30, 6, key="calc_v_age")
                     
                 with col_u3:
-                    st.markdown("**📄 Operational Categories**")
-                    risk_type = st.selectbox("Underwriting Classification (Type_risk)", ["2", "1", "3", "4"], key="calc_risk")
-                    fuel_type = st.selectbox("Fuel Type (Type_fuel)", ["Gasoline", "Diesel", "LPG", "Unknown"], key="calc_fuel")
-                    area = st.selectbox("Area Code (Area)", ["1", "2", "3", "4", "5"], key="calc_area")
-                    channel = st.selectbox("Distribution Channel", ["1", "2", "3"], key="calc_chan")
-                    payment = st.selectbox("Payment Method", ["1", "2", "3"], key="calc_pay")
-                    second_driver = st.selectbox("Second Driver Registry", ["0", "1"], key="calc_sec")
-                    policies_in_force = st.number_input("Policies in Force", 1, 10, 1, key="calc_pif")
+                    st.markdown("**📄 Operational Classification**")
+                    risk_type_label = st.segmented_control(
+                        "Risk Classification", 
+                        options=["Private Passenger", "Motorcycle", "Commercial", "Fleet"], 
+                        default="Private Passenger",
+                        key="calc_risk_label"
+                    )
+                    # Map readable user selections back to your raw notebook category codes
+                    risk_map = {"Motorcycle": "1", "Private Passenger": "2", "Commercial": "3", "Fleet": "4"}
+                    risk_type = risk_map.get(risk_type_label, "2")
 
-            # Package features into structural format matching notebook ColumnTransformer layout exactly
+                # Hiding the overwhelming secondary variables inside a clean expander block
+                with st.expander("⚙️ Secondary Risk Factors (Optional Adjustment)", expanded=False):
+                    col_ex1, col_ex2, col_ex3 = st.columns(3)
+                    with col_ex1:
+                        licence_years = st.slider("Years Licensed", 0, 75, max(0, driver_age - 18), key="calc_lic")
+                        policies_in_force = st.number_input("Policies in Force", 1, 10, 1, key="calc_pif")
+                        second_driver = st.pills("Second Driver Registry", ["No", "Yes"], default="No", key="calc_sec_lbl")
+                        sec_driver_code = "1" if second_driver == "Yes" else "0"
+                    with col_ex2:
+                        fuel_type = st.pills("Fuel Type", ["Gasoline", "Diesel", "LPG", "Unknown"], default="Gasoline", key="calc_fuel")
+                        doors = st.pills("Door Count", ["4", "2", "3", "5"], default="4", key="calc_doors")
+                        area = st.selectbox("Area Code", ["1", "2", "3", "4", "5"], index=0, key="calc_area")
+                    with col_ex3:
+                        cylinder = st.number_input("Cylinder Capacity (cc)", min_value=100, max_value=8000, value=1600, key="calc_cyl")
+                        length = st.number_input("Vehicle Length (mm)", min_value=1000, max_value=6000, value=4200, key="calc_len")
+                        weight = st.number_input("Vehicle Weight (kg)", min_value=300, max_value=4000, value=1300, key="calc_weight")
+                        channel = "1"
+                        payment = "1"
+
+            # Package features into structural format matching notebook input exactly
             input_row = pd.DataFrame([{
                 "Age": float(driver_age),
                 "Licence_years": float(licence_years),
@@ -327,22 +343,21 @@ with tab_predict:
                 "Area": str(area),
                 "Distribution_channel": str(channel),
                 "Payment": str(payment),
-                "Second_driver": str(second_driver),
+                "Second_driver": str(sec_driver_code),
                 "N_doors": str(doors)
             }])
 
-            # Initialize a fallback default decile in case the pipeline hits an environmental snag
+            # Fallback initialization coordinates
             decile = 5
             real_predicted_cost = 65.0
 
-            # Execute explicit live pipeline inference pass with safety overrides
+            # Execute model pass
             try:
                 real_predicted_cost = float(trained_model.predict(input_row)[0])
-                st.success(f"🔬 *Real-Time Mathematical Inference:* **Estimated Base Claim Cost = `${real_predicted_cost:.2f}`**")
+                st.success(f"🔬 *Real-Time Model Inference:* **Estimated Base Claim Cost = `${real_predicted_cost:.2f}`**")
                 
-                # Dynamic mapping based on standard portfolio deviations relative to portfolio average
-                # This ensures slider adjustments dynamically swing across deciles seamlessly
-                if real_predicted_cost < 25.0: decile = 1
+                # Allocation parameters matching standard portfolio variations
+                if real_predicted_cost < 20.0: decile = 1
                 elif real_predicted_cost < 40.0: decile = 2
                 elif real_predicted_cost < 50.0: decile = 3
                 elif real_predicted_cost < 60.0: decile = 4
@@ -354,10 +369,11 @@ with tab_predict:
                 else: decile = 10
                 
             except Exception as e:
-                st.warning(f"⚠️ **Scikit-Learn Pipeline Alignment Note:** `{str(e)}`")
-                st.caption("Running fallback calibration engine matrix.")
+                # If pipeline returns an environment variance string, show a custom error box for troubleshooting
+                st.error(f"❌ **Pipeline Mapping Error:** `{str(e)}`")
+                st.info("The field mappings above do not perfectly align with the categorical strings saved in your notebook file. Please check your notebook features configuration.")
                 
-                # Fallback mathematical model tracking your group's explicit coefficients to keep UI active
+                # Active proxy engine to keep UI scaling operational
                 fallback_score = 100.0
                 if driver_age < 25: fallback_score *= 2.2
                 elif driver_age > 75: fallback_score *= 1.3
