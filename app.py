@@ -257,7 +257,7 @@ with tab_explore:
             st.markdown("#### **📈 Historical Portfolio Claim Average Cost Trend**")
             st.write("Tracking the average claims cost drop across consecutive historical exposure periods (2015 - 2018):")
             
-            # Aligned to exact report narrative values
+             # Aligned to exact report narrative values
             years = ["2015", "2016", "2017", "2018"]
             mean_costs_trend = [261.78, 246.46, 146.55, 64.62]
             fig_trend1 = px.line(x=years, y=mean_costs_trend, labels={"x": "Financial Policy Year", "y": "Mean Annual Claim Cost (€)"})
