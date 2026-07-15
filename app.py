@@ -257,12 +257,23 @@ with tab_explore:
             st.markdown("#### **📈 Historical Portfolio Claim Average Cost Trend**")
             st.write("Tracking the average claims cost drop across consecutive historical exposure periods (2015 - 2018):")
             
-             # Aligned to exact report narrative values
+             # --- Historical Portfolio Claim Average Cost Trend ---
             years = ["2015", "2016", "2017", "2018"]
             mean_costs_trend = [261.78, 246.46, 146.55, 64.62]
             fig_trend1 = px.line(x=years, y=mean_costs_trend, labels={"x": "Financial Policy Year", "y": "Mean Annual Claim Cost (€)"})
             fig_trend1.update_traces(line_color="#1E3A8A", line_width=3, mode="lines+markers")
-            fig_trend1.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=250)
+            
+            # HARD OVERRIDE: Enforce exact categorical labels and disable auto-ticking
+            fig_trend1.update_layout(
+                xaxis=dict(
+                    type='category',
+                    tickmode='array',
+                    tickvals=years,
+                    ticktext=years
+                ),
+                margin=dict(t=10, b=10, l=10, r=10), 
+                height=250
+            )
             st.plotly_chart(fig_trend1, use_container_width=True)
 
     with col_e2:
