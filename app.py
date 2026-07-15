@@ -466,18 +466,19 @@ with tab_predict:
                 safety_loading = 1.30 if driver_age < 25 else 1.15
                 recommended_premium = (real_predicted_cost * safety_loading)
 
-                # 6. Commercial Verdict Card Layout
+                # 6. Commercial Verdict Card Layout (Relabeled for Governance Compliance)
                 st.markdown("### **Commercial Underwriting & Referral Verdict**")
                 col_res1, col_res2, col_res3 = st.columns(3)
                 
                 with col_res1:
                     st.metric("Risk Placement Band", f"Decile {decile} / 10", f"{rel_risk:.2f}x average risk")
                 with col_res2:
-                    st.metric("Recommended Premium", f"€{recommended_premium:.2f}", f"Includes {int((safety_loading-1)*100)}% Loading Factor")
+                    # Relabeled from "Recommended Premium" to "Indicative Risk Cost (Non-Quotable)"
+                    st.metric("Indicative Risk Cost", f"€{recommended_premium:.2f}", "⚠️ Non-Quotable (Rank-Only)")
                 with col_res3:
                     if driver_age < 21:
                         status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
-                    elif str(risk_type) == "4":  # ✅ Fixed: String check for Fleet
+                    elif str(risk_type) == "4":  
                         status, color, desc = "FLEET REVIEW REQUIRED", "#F59E0B", "Commercial fleet classifications require commercial vehicle safety audits."
                     elif decile <= 4:
                         status, color, desc = "AUTO-PASS", "#10B981", "Optimal risk metrics. Fast-track automated rate with no manual intervention."
