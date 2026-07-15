@@ -186,7 +186,7 @@ def show_about():
 **Underwriting Context & Tech Stack**
 This dashboard productizes our group's modeling pipeline for the **Chief Underwriting Officer**.
 - **Champion Model:** Poisson GLM (Trained on 100k+ policy transactions)
-- **Group 06 Members:** Abdulrahman Alolyan, Chhavi Ahuja, Priscilla Denteh Dufie, & Tracy Rotich.
+- **Group 06 Members:** Abdulrahman Alolyan, Chhavi Ahuja, Priscilla Dufie Denteh, & Tracy Rotich.
 - **Academic Environment:** Bayes Business School (Applied Machine Learning).
     """)
 
