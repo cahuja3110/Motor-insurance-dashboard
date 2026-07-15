@@ -142,7 +142,7 @@ with st.sidebar:
 
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Database Transactions", "105,555")
-m2.metric("Portfolio Average Claim", "$65.00")
+m2.metric("Portfolio Average Claim", "€65.00")
 m3.metric("Top Decile Risk Multiplier", "2.47x")
 m4.metric("Deployed Framework", "Poisson GLM")
 
@@ -209,7 +209,7 @@ with tab_explore:
             # Trend Graph 2
             age_bands = ["17-21", "22-25", "26-35", "36-50", "51-65", "66+"]
             mean_costs = [295.40, 210.10, 115.50, 68.20, 52.40, 78.90]
-            fig_trend2 = px.line(x=age_bands, y=mean_costs, labels={"x": "Driver Age Group", "y": "Empirical Loss Cost ($)"})
+            fig_trend2 = px.line(x=age_bands, y=mean_costs, labels={"x": "Driver Age Group", "y": "Empirical Loss Cost (€)"})
             fig_trend2.update_traces(line_color="#EF4444", line_width=3, mode="lines+markers")
             fig_trend2.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=250)
             st.plotly_chart(fig_trend2, use_container_width=True)
@@ -217,7 +217,7 @@ with tab_explore:
     with st.container(border=True):
         st.markdown("#### **📊 Zero-Inflation Claim Metric Split**")
         st.write("Over **98.2%** of policies generate zero claims. Our modeling architecture leverages a Poisson link function explicitly to handle this skew cleanly.")
-        labels = ['No Claims ($0)', 'Minor Claims (<$500)', 'Severe Claims (>$500)']
+        labels = ['No Claims (€0)', 'Minor Claims (<€500)', 'Severe Claims (>€500)']
         values = [98.2, 1.4, 0.4]
         fig_pie = px.pie(names=labels, values=values, color_discrete_sequence=['#1E3A8A', '#3B82F6', '#EF4444'], hole=0.4)
         fig_pie.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=220)
@@ -242,7 +242,7 @@ with tab_compare:
             })
             
             formatted_df = comparison_data.copy()
-            formatted_df["Cross-Validated MAE"] = formatted_df["Cross-Validated MAE"].map("${:,.2f}".format)
+            formatted_df["Cross-Validated MAE"] = formatted_df["Cross-Validated MAE"].map("€{:,.2f}".format)
             formatted_df["Out-of-Sample Deviance"] = formatted_df["Out-of-Sample Deviance"].map("{:.4f}".format)
             formatted_df["Gini Coefficient"] = formatted_df["Gini Coefficient"].map("{:.4f}".format)
             st.dataframe(formatted_df, use_container_width=True, hide_index=True)
@@ -375,9 +375,9 @@ with tab_predict:
             # 4. Process Machine Learning Prediction
             try:
                 real_predicted_cost = float(trained_model.predict(input_row)[0])
-                st.success(f"🎯 **Authenticated Model Prediction Cost:** `${real_predicted_cost:.2f}`")
+                st.success(f"🎯 **Authenticated Model Prediction Cost:** `€{real_predicted_cost:.2f}`")
                 
-                # Dynamic mapping custom-tailored to your model's true output window ($220 to $390+)
+                # Dynamic mapping custom-tailored to your model's true output window (€220 to €390+)
                 if real_predicted_cost <= 222.0: decile = 1
                 elif real_predicted_cost <= 230.0: decile = 2
                 elif real_predicted_cost <= 242.0: decile = 3
@@ -401,7 +401,7 @@ with tab_predict:
                 with col_res1:
                     st.metric("Risk Placement Band", f"Decile {decile} / 10", f"{rel_risk:.2f}x average risk")
                 with col_res2:
-                    st.metric("Recommended Premium", f"${recommended_premium:.2f}", f"Includes {int((safety_loading-1)*100)}% Loading Factor")
+                    st.metric("Recommended Premium", f"€{recommended_premium:.2f}", f"Includes {int((safety_loading-1)*100)}% Loading Factor")
                 with col_res3:
                     if driver_age < 21:
                         status, color, desc = "REFER TO SENIOR CUO", "#EF4444", "Policyholder is under 21. Automatic trigger for manual premium review."
@@ -461,7 +461,7 @@ with tab_predict:
                 ))
                 fig_comp.update_layout(
                     title="<b>Applicant Cost Variance Position Matrix</b>",
-                    yaxis=dict(title="Mathematical Valuation Score ($)"),
+                    yaxis=dict(title="Mathematical Valuation Score (€)"),
                     height=240,
                     margin=dict(t=30, b=10, l=10, r=10)
                 )
