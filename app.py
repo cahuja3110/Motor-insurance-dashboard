@@ -104,8 +104,23 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-actual_means = [7.41, 15.20, 22.10, 35.50, 48.90, 62.10, 78.40, 99.80, 120.50, 160.73]
-portfolio_avg = 65.00
+# ==============================================================================
+# 🎯 DYNAMIC PORTFOLIO BASELINE CALCULATIONS (Aligned with Spanish Dataset)
+# ==============================================================================
+# 1. Identify your target claims cost column (must match the column name in your CSV)
+cost_col = "Cost_claims_year"
+
+# 2. Compute the true average claims cost dynamically (expressed in Euros €)
+portfolio_avg = float(df[cost_col].mean())
+
+# 3. Dynamically slice the actual dataset into 10 clean risk deciles
+# We sort and rank the rows to split them into 10 even buckets (deciles 1 to 10)
+df['risk_decile'] = pd.qcut(df[cost_col].rank(method='first'), 10, labels=False) + 1
+
+# 4. Compute the mathematical mean of each decile bucket
+actual_means = df.groupby('risk_decile')[cost_col].mean().tolist()
+
+# 5. Maintain the deciles list for UI charting
 deciles = list(range(1, 11))
 
 # Hero Header Module with updated exact requested string
