@@ -105,43 +105,71 @@ st.markdown(
 )
 
 # ────────────────────────────────────────────────────────────────────────────
-# 💾 Data Loading (MUST run before dynamic metrics calculation!)
+# 💾 Data Loading & Preprocessing Pipeline
 # ────────────────────────────────────────────────────────────────────────────
 @st.cache_data
-def load_portfolio_data():
-    # Replace this string with your exact CSV path or name in your repository
-    return pd.read_csv("motor_portfolio_data.csv") 
+def load_and_clean_portfolio():
+    try:
+        # Load the raw file using semicolon delimiter
+        raw = pd.read_csv("Motor vehicle insurance data.csv", sep=";")
+        
+        # Parse Dates
+        date_cols = ["Date_start_contract", "Date_last_renewal", "Date_next_renewal",
+                     "Date_birth", "Date_driving_licence", "Date_lapse"]
+        for col in date_cols:
+            raw[col] = pd.to_datetime(raw[col], dayfirst=True, errors="coerce")
+        
+        # Apply Clean Logic (From Section 3 of Report)
+        coverage_days = (raw["Date_next_renewal"] - raw["Date_last_renewal"]).dt.days
+        keep = (
+            raw["Date_last_renewal"].notna()
+            & raw["Date_next_renewal"].notna()
+            & coverage_days.between(360, 370)
+            & (raw["Date_driving_licence"] <= raw["Date_last_renewal"])
+            & (raw["Date_start_contract"] <= raw["Date_last_renewal"])
+            & (raw["Premium"] > 0)
+            & (raw["Cost_claims_year"] >= 0)
+        )
+        cleaned_df = raw.loc[keep].copy()
+        
+        # Feature Engineering (From Section 3 of Report)
+        start = cleaned_df["Date_last_renewal"]
+        cleaned_df["Policy_year"] = start.dt.year
+        cleaned_df["Age"] = (start - cleaned_df["Date_birth"]).dt.days / 365.25
+        cleaned_df["Licence_years"] = (start - cleaned_df["Date_driving_licence"]).dt.days / 365.25
+        cleaned_df["Vehicle_age"] = start.dt.year - cleaned_df["Year_matriculation"]
+        cleaned_df["Customer_years"] = (start - cleaned_df["Date_start_contract"]).dt.days / 365.25
+        cleaned_df["Length_missing"] = cleaned_df["Length"].isna().astype(int)
+        cleaned_df["Type_fuel"] = cleaned_df["Type_fuel"].fillna("Unknown").astype(str)
+        
+        for col in ["Distribution_channel", "Payment", "Type_risk", "Area", "Second_driver", "N_doors"]:
+            cleaned_df[col] = cleaned_df[col].astype("Int64").astype(str)
+            
+        return cleaned_df
+    except Exception as e:
+        st.warning(f"⚠️ Could not load or parse 'Motor vehicle insurance data.csv' ({str(e)}). Utilizing synthetic backup.")
+        # Reliable fallback maintaining correct columns
+        backup_df = pd.DataFrame({
+            "Cost_claims_year": np.random.choice([0.0, 150.0, 750.0], size=10000, p=[0.906, 0.08, 0.014]),
+            "Policy_year": np.random.choice([2015, 2016, 2017, 2018], size=10000),
+            "ID": np.random.randint(100000, 999999, size=10000)
+        })
+        return backup_df
 
-try:
-    df = load_portfolio_data()
-except Exception:
-    # Safe fallback if CSV file naming varies locally or on cloud servers
-    st.error("⚠️ **Unable to find `motor_portfolio_data.csv`.** Loading synthetic structure to keep dashboard working.")
-    df = pd.DataFrame({
-        "Cost_claims_year": np.random.choice([0.0, 150.0, 350.0, 1200.0], size=10000, p=[0.946, 0.034, 0.015, 0.005]),
-        "Policy_year": np.random.choice([2015, 2016, 2017, 2018], size=10000)
-    })
+df = load_and_clean_portfolio()
 
 # ==============================================================================
-# 🎯 DYNAMIC PORTFOLIO BASELINE CALCULATIONS (Aligned with Spanish Dataset)
+# 🎯 DYNAMIC PORTFOLIO BASELINE CALCULATIONS 
 # ==============================================================================
 cost_col = "Cost_claims_year"
-
-# 1. Compute the true average claims cost dynamically (expressed in Euros €)
 portfolio_avg = float(df[cost_col].mean())
 
-# 2. Dynamically slice the actual dataset into 10 clean risk deciles
+# Sort and divide into clean deciles
 df['risk_decile'] = pd.qcut(df[cost_col].rank(method='first'), 10, labels=False) + 1
-
-# 3. Compute the mathematical mean of each decile bucket
 actual_means = df.groupby('risk_decile')[cost_col].mean().tolist()
-
-# 4. Maintain the deciles list for UI charting
 deciles = list(range(1, 11))
 
-# ────────────────────────────────────────────────────────────────────────────
-# Header & UI
-# ────────────────────────────────────────────────────────────────────────────
+# Hero Header Module
 st.markdown(
     """
     <div class="hero">
@@ -158,7 +186,7 @@ def show_about():
 **Underwriting Context & Tech Stack**
 This dashboard productizes our group's modeling pipeline for the **Chief Underwriting Officer**.
 - **Champion Model:** Poisson GLM (Trained on 100k+ policy transactions)
-- **Group 06 Members:** Abdulrahman Alolyan, Chhavi Ahuja, Dufie Denteh Priscilla, & Tracy Rotich.
+- **Group 06 Members:** Abdulrahman Alolyan, Chhavi Ahuja, Rotich Tracy, & Dufie Denteh Pricilla.
 - **Academic Environment:** Bayes Business School (Applied Machine Learning).
     """)
 
@@ -215,7 +243,7 @@ with tab_briefing:
             st.write("Our champion framework isolates volatile extreme-risk exposures from optimal segments, ensuring strict competitive advantages.")
 
 # ────────────────────────────────────────────────────────────────────────────
-# TAB 2: PORTFOLIO INSIGHTS & HISTORICAL TRENDS (EDA ALIGNED TO TRUE DATA)
+# TAB 2: PORTFOLIO INSIGHTS & HISTORICAL TRENDS (ALIGNED TO REPORT RESULTS)
 # ────────────────────────────────────────────────────────────────────────────
 with tab_explore:
     st.markdown("### **Exploratory Data Analysis (EDA) & Portfolio Characterization**")
@@ -225,13 +253,13 @@ with tab_explore:
 
     with col_e1:
         with st.container(border=True):
-            st.markdown("#### **📈 Historical Portfolio Claim Frequency Trend**")
-            st.write("Tracking the systemic claim frequency index over consecutive historical exposure periods (2015 - 2018):")
+            st.markdown("#### **📈 Historical Portfolio Claim Average Cost Trend**")
+            st.write("Tracking the average claims cost drop across consecutive historical exposure periods (2015 - 2018):")
             
-            # FIXED: Years updated to true dataset window of 2015 to 2018
+            # Aligned to exact report narrative values: 2015: 261.78, 2016: 246.46, 2017: 146.55, 2018: 64.62
             years = ["2015", "2016", "2017", "2018"]
-            freq_index = [0.061, 0.059, 0.056, 0.054]
-            fig_trend1 = px.line(x=years, y=freq_index, labels={"x": "Financial Year", "y": "Claim Frequency Index"})
+            mean_costs_trend = [261.78, 246.46, 146.55, 64.62]
+            fig_trend1 = px.line(x=years, y=mean_costs_trend, labels={"x": "Financial Policy Year", "y": "Mean Annual Claim Cost (€)"})
             fig_trend1.update_traces(line_color="#1E3A8A", line_width=3, mode="lines+markers")
             fig_trend1.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=250)
             st.plotly_chart(fig_trend1, use_container_width=True)
@@ -249,52 +277,59 @@ with tab_explore:
             st.plotly_chart(fig_trend2, use_container_width=True)
 
     with st.container(border=True):
-        st.markdown("#### **📊 Zero-Inflation Claim Metric Split**")
-        st.write("Over **94.6%** of policies in this registry generate zero claims. Our modeling architecture leverages a Poisson link function explicitly to handle this skew cleanly.")
+        st.markdown("#### **📊 Zero-Inflation Claim Metric Split (2018 Test Year)**")
+        st.write("Approximately **90.6%** of the 2018 policy-years in this registry generate zero claims. Our modeling architecture leverages a Poisson link function explicitly to handle this skew cleanly.")
         
-        # FIXED: Pie chart metrics updated to match true EDA properties of your dataset
+        # Aligned to exact report results (90.6% zero-claims in 2018)
         labels = ['No Claims (€0)', 'Minor Claims (<€500)', 'Severe Claims (>€500)']
-        values = [94.6, 4.1, 1.3]
+        values = [90.6, 7.2, 2.2]
         fig_pie = px.pie(names=labels, values=values, color_discrete_sequence=['#1E3A8A', '#3B82F6', '#EF4444'], hole=0.4)
         fig_pie.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=220)
         st.plotly_chart(fig_pie, use_container_width=True)
 
 # ────────────────────────────────────────────────────────────────────────────
-# TAB 3: MODEL CHAMPIONS (UPDATED WITH REAL PRICING MODELS)
+# TAB 3: MODEL CHAMPIONS (ALIGNED TO REPORT TOURNAMENT RESULTS)
 # ────────────────────────────────────────────────────────────────────────────
 with tab_compare:
     st.markdown("### **Model Tournament Comparisons**")
     
-    col_t1, col_t2 = st.columns([1.1, 0.9])
+    col_t1, col_t2 = st.columns([1.2, 0.8])
     
     with col_t1:
         with st.container(border=True):
             st.markdown("#### **🏆 Model Performance Matrix**")
             
-            # FIXED: Updated models to represent true pricing pipelines
+            # Aligned exactly with Section 4 and Section 5 results in your report
             comparison_data = pd.DataFrame({
-                "Model Architecture": ["Baseline (Flat Mean)", "GLM Gamma (Severity Only)", "Tweedie Compound GLM", "Poisson GLM (Champion)"],
-                "Cross-Validated MAE": [65.0000, 62.1520, 59.8821, 58.4110],
-                "Out-of-Sample Deviance": [2.4419, 2.2210, 2.0145, 1.8492],
-                "Gini Coefficient": [0.0000, 0.1240, 0.1985, 0.2491]
+                "Model Architecture": [
+                    "Baseline (predict the mean)", 
+                    "Poisson GLM (Champion)", 
+                    "Random Forest (shallow)", 
+                    "XGBoost (shallow)"
+                ],
+                "Cross-Validated MAE": [325.485, 311.919, 312.617, 319.917],
+                "2018 Test MAE": [235.322, 235.445, 246.958, 245.822],
+                "2018 Test Gini": [0.000, 0.405, 0.385, 0.377],
+                "Top-Decile Lift": [1.000, 2.488, 2.537, 2.300]
             })
             
             formatted_df = comparison_data.copy()
             formatted_df["Cross-Validated MAE"] = formatted_df["Cross-Validated MAE"].map("€{:,.2f}".format)
-            formatted_df["Out-of-Sample Deviance"] = formatted_df["Out-of-Sample Deviance"].map("{:.4f}".format)
-            formatted_df["Gini Coefficient"] = formatted_df["Gini Coefficient"].map("{:.4f}".format)
+            formatted_df["2018 Test MAE"] = formatted_df["2018 Test MAE"].map("€{:,.2f}".format)
+            formatted_df["2018 Test Gini"] = formatted_df["2018 Test Gini"].map("{:.3f}".format)
+            formatted_df["Top-Decile Lift"] = formatted_df["Top-Decile Lift"].map("{:.3f}x".format)
             st.dataframe(formatted_df, use_container_width=True, hide_index=True)
 
     with col_t2:
         with st.container(border=True):
-            st.markdown("#### **📈 Gini Lift Curve (Line Graph)**")
-            st.write("Tracking model performance lift across our tournament configurations:")
+            st.markdown("#### **📈 Gini Lift Ranking Performance (2018 Test)**")
+            st.write("Visualizing how well each model orders policies from safest to riskiest (Gini Score):")
             
             fig_gini_line = px.line(
                 comparison_data, 
                 x="Model Architecture", 
-                y="Gini Coefficient",
-                labels={"Model Architecture": "Model Iteration", "Gini Coefficient": "Gini Score"},
+                y="2018 Test Gini",
+                labels={"Model Architecture": "Model Iteration", "2018 Test Gini": "Gini Score"},
                 markers=True
             )
             fig_gini_line.update_traces(line_color="#1E3A8A", line_width=3, marker=dict(size=10, color="#EF4444"))
@@ -302,7 +337,7 @@ with tab_compare:
             st.plotly_chart(fig_gini_line, use_container_width=True)
 
 # ────────────────────────────────────────────────────────────────────────────
-# TAB 4 — Underwriting Calculator
+# TAB 4: UNDERWRITING CALCULATOR
 # ────────────────────────────────────────────────────────────────────────────
 with tab_predict:
     st.caption("Adjust policyholder metrics on the fly. Calculations execute directly inside the loaded serialized pipeline script.")
@@ -431,7 +466,7 @@ with tab_predict:
                 safety_loading = 1.30 if driver_age < 25 else 1.15
                 recommended_premium = (real_predicted_cost * safety_loading)
 
-                # 6. Commercial Verdict Card Layout (String Type Fix Executed Here)
+                # 6. Commercial Verdict Card Layout
                 st.markdown("### **Commercial Underwriting & Referral Verdict**")
                 col_res1, col_res2, col_res3 = st.columns(3)
                 
@@ -459,7 +494,7 @@ with tab_predict:
                         unsafe_allow_html=True,
                     )
                 
-                # 7. Applied Underwriting Rules & Governance Audit (String Type Fix Executed Here)
+                # 7. Applied Underwriting Rules & Governance Audit
                 with st.container(border=True):
                     st.markdown("##### 📝 **Applied Underwriting Rules & Governance Audit**")
                     col_aud1, col_aud2 = st.columns(2)
