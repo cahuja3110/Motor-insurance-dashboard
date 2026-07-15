@@ -13,4 +13,4 @@ This interactive Streamlit dashboard is designed for the **Chief Underwriting Of
 - `requirements.txt` - Required library list for deployment.
 
 ---
-*Created by SMM284 Group 06: Abdulrahman Alolyan, Chhavi Ahuja, Priscilla Denteh Dufie, & Tracy Rotich.*
+*Created by SMM284 Group 06: Abdulrahman Alolyan, Chhavi Ahuja, Priscilla Dufie Denteh, & Tracy Rotich.*
